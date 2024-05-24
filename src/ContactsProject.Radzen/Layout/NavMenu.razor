@@ -1,0 +1,45 @@
+@using System.Security.Claims
+@inject AppService AppService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<RadzenHeader>
+    <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Start" Gap="0">
+        <RadzenColumn Size="5">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center">
+                <RadzenSidebarToggle Click="@(() => sidebarExpanded = !sidebarExpanded)" />
+                <RadzenLabel Text="Contacts Sample" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis;" />
+            </RadzenStack>
+        </RadzenColumn>
+        <RadzenColumn Size="7">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End">
+                <div Class="rz-display-none rz-display-sm-inline-flex align-items-center">
+                    <a href="https://www.donpotts.com/" Class="rz-mx-2 rz-mx-lg-4" target="_blank">About</a>
+                </div>
+            </RadzenStack>
+        </RadzenColumn>
+    </RadzenRow>
+</RadzenHeader>
+<RadzenSidebar @bind-Expanded="@sidebarExpanded">
+    <RadzenPanelMenu>
+        <RadzenPanelMenuItem Text="Home" Icon="home" Path="/" />
+        <AuthorizeView>
+            <RadzenPanelMenuItem Text="Contact" Icon="table_chart" Path="contact" />
+
+        </AuthorizeView>
+        <AuthorizeView>
+            <RadzenPanelMenuItem Text="User" Icon="people" Path="user" />
+        </AuthorizeView>
+        <AuthorizeView>
+            <Authorized>
+                <RadzenPanelMenuItem Text=@($"Logout ({context.User.Identity!.Name})") Icon="logout" Path="logout" />
+            </Authorized>
+            <NotAuthorized>
+                <RadzenPanelMenuItem Text="Login" Icon="login" Path="login" />
+            </NotAuthorized>
+        </AuthorizeView>
+    </RadzenPanelMenu>
+</RadzenSidebar>
+
+@code {
+    bool sidebarExpanded = true;
+}

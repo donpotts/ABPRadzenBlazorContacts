@@ -1,0 +1,159 @@
+@inject AppService AppService
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+@inject HttpClient HttpClient
+@attribute [Authorize]
+
+@if (user == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <style>
+        .rz-fileupload-content {
+            display: none;
+        }
+    </style>
+    <RadzenColumn SizeMD=12>
+        <RadzenTemplateForm TItem="User" Data="@updateUser" Submit="OnSubmit">
+            <RadzenStack>
+                <RadzenFormField Text="Id" Variant="Variant.Filled">
+                    <ChildContent>
+                        <RadzenTextBox style="display:block;width:100%;" Name="Id" @bind-Value="@user.Id" Disabled="true" />
+                    </ChildContent>
+                </RadzenFormField>
+                <RadzenFormField Text="User Name" Variant="Variant.Filled">
+                    <ChildContent>
+                        <RadzenTextBox style="display:block;width:100%;" Name="UserName" @bind-Value="@user.UserName" />
+                    </ChildContent>
+                    <Helper>
+                        <RadzenRequiredValidator Component="UserName" Text="Username is required" />
+                        <RadzenEmailValidator Component="UserName" Text="Provide a valid username" />
+                    </Helper>
+                </RadzenFormField>
+                <RadzenFormField Text="Name" Variant="Variant.Filled">
+                    <ChildContent>
+                        <RadzenTextBox style="display:block;width:100%;" Name="Name" @bind-Value="@user.Name" />
+                    </ChildContent>
+                    <Helper>
+                        <RadzenRequiredValidator Component="Name" Text="Name is required" />
+                        <RadzenEmailValidator Component="Name" Text="Provide a valid name" />
+                    </Helper>
+                </RadzenFormField>
+                <RadzenFormField Text="Surname" Variant="Variant.Filled">
+                    <ChildContent>
+                        <RadzenTextBox style="display:block;width:100%;" Name="Surname" @bind-Value="@user.Surname" />
+                    </ChildContent>
+                    <Helper>
+                        <RadzenRequiredValidator Component="Name" Text="Surname is required" />
+                        <RadzenEmailValidator Component="Name" Text="Provide a valid Surname" />
+                    </Helper>
+                </RadzenFormField>
+                <RadzenFormField Text="Email" Variant="Variant.Filled">
+                    <ChildContent>
+                        <RadzenTextBox style="display:block;width:100%;" Name="UserName" @bind-Value="@user.Email" Disabled="true" />
+                    </ChildContent>
+                </RadzenFormField>
+                <RadzenFormField Text="Password" Variant="Variant.Filled">
+                    <ChildContent>
+                        <RadzenPassword style="display:block;width:100%;" Name="Password" @bind-Value="@user.Password" />
+                    </ChildContent>
+                </RadzenFormField>
+                <RadzenFormField Text="Phone Number" Variant="Variant.Filled">
+                    <ChildContent>
+                        <RadzenTextBox style="display:block;width:100%;" Name="PhoneNumber" @bind-Value="@user.PhoneNumber" Disabled="true" />
+                    </ChildContent>
+                </RadzenFormField>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" style="height:var(--rz-input-height);line-height:var(--rz-input-line-height);">
+                    <RadzenCheckBox Name="IsActive" @bind-Value="@user.IsActive" />
+                    <RadzenLabel Text="IsActive" Component="IsActive" />
+                </RadzenStack>
+            </RadzenStack>
+            <RadzenStack style="margin-top:1rem;" Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Gap="0.5rem">
+                <RadzenButton ButtonStyle="ButtonStyle.Primary" ButtonType="ButtonType.Submit" Icon="save" Text="Save" Variant="Variant.Flat" />
+                <RadzenButton ButtonStyle="ButtonStyle.Light" Text="Cancel" Variant="Variant.Flat" Click="Cancel" />
+            </RadzenStack>
+        </RadzenTemplateForm>
+    </RadzenColumn>
+}
+
+@code {
+    [Parameter]
+    public string Id { get; set; } = null!;
+
+    private User updateUser = new();
+    private User? user;
+
+    private string GetAbsoluteUri(string uri)
+    {
+        if (!uri.StartsWith("/"))
+        {
+            return uri;
+        }
+
+        var baseUri = HttpClient.BaseAddress;
+
+        if (baseUri == null)
+        {
+            throw new Exception("Unable to determine base address");
+        }
+
+        Uri absolute = new(baseUri, uri);
+
+        return absolute.ToString();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            user = await AppService.GetContactUserByIdAsync(Id);
+
+            updateUser = new()
+                {
+                    Name = user.Name,
+                    Surname = user.Surname,
+                    Email = user.Email,
+                };
+        }
+        catch (Exception ex)
+        {
+            NotificationMessage message = new()
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Load Failed",
+                    Detail = ex.Message,
+                    Duration = 4000
+                };
+
+            NotificationService.Notify(message);
+        }
+    }
+
+    private void Cancel()
+    {
+        DialogService.Close();
+    }
+
+    private async Task OnSubmit()
+    {
+        try
+        {
+            await AppService.UpdateContactUserAsync(Id, updateUser);
+            DialogService.Close();
+        }
+        catch (Exception ex)
+        {
+            NotificationMessage message = new()
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Update Failed",
+                    Detail = ex.Message,
+                    Duration = 4000
+                };
+
+            NotificationService.Notify(message);
+        }
+    }
+}

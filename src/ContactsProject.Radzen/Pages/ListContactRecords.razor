@@ -1,0 +1,112 @@
+@page "/contact"
+@inject AppService AppService
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+@inject HttpClient HttpClient
+@attribute [Authorize]
+
+<PageTitle>Contact</PageTitle>
+
+<RadzenText TextStyle="TextStyle.H2" TagName="TagName.H1">Contact</RadzenText>
+
+<RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" class="rz-mb-3">
+    <RadzenButton Text="Add" Icon="add_circle_outline" Click=@(args => AddRow()) />
+</RadzenStack>
+
+<RadzenDataGrid @ref="grid" Data="@records" LoadData="@LoadData" IsLoading="@isLoading" Count="@count" AllowSorting="true" AllowFiltering="true" AllowPaging="true" PageSize="5" TItem="Contact" ColumnWidth="160px">
+    <Columns>
+        <RadzenDataGridColumn TItem="Contact" Property="Id" Title="Id" />
+        <RadzenDataGridColumn TItem="Contact" Property="FirstName" Title="First Name" />
+        <RadzenDataGridColumn TItem="Contact" Property="LastName" Title="Last Name" />
+        <RadzenDataGridColumn TItem="Contact" Property="Birthday" Title="Birthday" />
+        <RadzenDataGridColumn TItem="Contact" Property="PhoneNumber" Title="Phone Number" />
+        <RadzenDataGridColumn TItem="Contact" Property="Email" Title="Email" />
+        <RadzenDataGridColumn TItem="Contact" Property="StreetAddress" Title="Street Address" />
+        <RadzenDataGridColumn TItem="Contact" Property="City" Title="City" />
+        <RadzenDataGridColumn TItem="Contact" Property="State" Title="State" />
+        <RadzenDataGridColumn TItem="Contact" Property="Zip" Title="Zip" />
+        <RadzenDataGridColumn TItem="Contact" Context="record" Sortable="false" Filterable="false" TextAlign="TextAlign.Right" Width="100px">
+            <Template>
+                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditRow(record))" />
+                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => DeleteRow(record))" />
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    private bool isLoading;
+    private IEnumerable<Contact>? records;
+    private int count;
+    private RadzenDataGrid<Contact>? grid;
+
+    private string GetAbsoluteUri(string uri)
+    {
+        if (!uri.StartsWith("/"))
+        {
+            return uri;
+        }
+
+        var baseUri = HttpClient.BaseAddress;
+
+        if (baseUri == null)
+        {
+            throw new Exception("Unable to determine base address");
+        }
+
+        Uri absolute = new(baseUri, uri);
+
+        return absolute.ToString();
+    }
+
+    private async Task LoadData(LoadDataArgs args)
+    {
+        var top = args.Top;
+        var skip = args.Skip;
+        string? orderby = args.OrderBy;
+
+        isLoading = true;
+
+        var result = await AppService.ListContactsAsync(orderby, skip, top);
+        records = result.Items.AsEnumerable();
+        count = (int)result.TotalCount;
+
+        isLoading = false;
+    }
+
+    private async Task AddRow()
+    {
+        await DialogService.OpenAsync<AddContactRecord>("Add Contact");
+        grid?.Reload();
+    }
+
+    private async Task EditRow(Contact record)
+    {
+        await DialogService.OpenAsync<UpdateContactRecord>("Update Contact", new() { { "Id", record.Id } });
+        grid?.Reload();
+    }
+
+    private async Task DeleteRow(Contact record)
+    {
+        try
+        {
+            if (await DialogService.Confirm("Are you sure you want to delete this record?") == true)
+            {
+                await AppService.DeleteContactAsync(record.Id!.Value);
+                grid?.Reload();
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationMessage message = new()
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Delete Failed",
+                    Detail = ex.Message,
+                    Duration = 4000
+                };
+
+            NotificationService.Notify(message);
+        }
+    }
+}

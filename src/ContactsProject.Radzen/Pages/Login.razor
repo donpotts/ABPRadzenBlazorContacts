@@ -1,0 +1,47 @@
+@page "/login"
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject NotificationService NotificationService
+
+<PageTitle>Login</PageTitle>
+
+<RadzenText TextStyle="TextStyle.H2" TagName="TagName.H1">Login</RadzenText>
+
+<RadzenCard Class="rz-my-12 rz-mx-auto" Style="max-width: 600px">
+    <RadzenTemplateForm Data=@("SimpleLogin")>
+        <RadzenLogin AllowResetPassword="false" UserText="UserName" UserRequired="UserName is required" Login=@OnLogin AllowRegister="false" />
+    </RadzenTemplateForm>
+</RadzenCard>
+
+@code {
+    private async void OnLogin(LoginArgs args)
+    {
+        LoginModel loginModel = new()
+            {
+                UserName= args.Username,
+                Password = args.Password,
+            };
+
+        try
+        {
+            await ((JwtAuthenticationStateProvider)AuthenticationStateProvider)
+                .LoginAsync(loginModel);
+        }
+        catch (Exception ex)
+        {
+            NotificationMessage message = new()
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Login Failed",
+                    Detail = ex.Message,
+                    Duration = 4000
+                };
+
+            NotificationService.Notify(message);
+
+            return;
+        }
+
+        Navigation.NavigateTo("");
+    }
+}

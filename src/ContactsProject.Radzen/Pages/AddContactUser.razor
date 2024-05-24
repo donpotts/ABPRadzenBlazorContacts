@@ -1,0 +1,126 @@
+@inject AppService AppService
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+@inject HttpClient HttpClient
+@attribute [Authorize]
+
+<style>
+    .rz-fileupload-content {
+        display: none;
+    }
+</style>
+<RadzenColumn SizeMD=12>
+    <RadzenTemplateForm TItem="User" Data="@registerModel" Submit="OnSubmit">
+        <RadzenStack>
+            <RadzenFormField Text="User Name" Variant="Variant.Filled">
+                <ChildContent>
+                    <RadzenTextBox style="display:block;width:100%;" Name="UserName" @bind-Value="@registerModel.UserName" />
+                </ChildContent>
+                <Helper>
+                    <RadzenRequiredValidator Component="UserName" Text="Username is required" />
+                </Helper>
+            </RadzenFormField>
+            <RadzenFormField Text="Name" Variant="Variant.Filled">
+                <ChildContent>
+                    <RadzenTextBox style="display:block;width:100%;" Name="Name" @bind-Value="@registerModel.Name" />
+                </ChildContent>
+                <Helper>
+                    <RadzenRequiredValidator Component="Name" Text="Name is required" />
+                </Helper>
+            </RadzenFormField>
+            <RadzenFormField Text="Surname" Variant="Variant.Filled">
+                <ChildContent>
+                    <RadzenTextBox style="display:block;width:100%;" Name="Surname" @bind-Value="@registerModel.Surname" />
+                </ChildContent>
+                <Helper>
+                    <RadzenRequiredValidator Component="Surname" Text="Surname is required" />
+                </Helper>
+            </RadzenFormField>
+            <RadzenFormField Text="Email" Variant="Variant.Filled">
+                <ChildContent>
+                    <RadzenTextBox style="display:block;width:100%;" Name="Email" @bind-Value="@registerModel.Email" />
+                </ChildContent>
+                <Helper>
+                    <RadzenRequiredValidator Component="Email" Text="Email is required" />
+                    <RadzenEmailValidator Component="Email" Text="Provide a valid email address" />
+                </Helper>
+            </RadzenFormField>
+            <RadzenFormField Text="Password" Variant="Variant.Filled">
+                <ChildContent>
+                    <RadzenPassword style="display:block;width:100%;" Name="Password" @bind-Value="@registerModel.Password" />
+                </ChildContent>
+                <Helper>
+                    <RadzenRequiredValidator Component="Password" Text="Password is required" />
+                </Helper>
+            </RadzenFormField>
+            <RadzenFormField Text="Phone Number" Variant="Variant.Filled">
+                <ChildContent>
+                    <RadzenTextBox style="display:block;width:100%;" Name="PhoneNumber" @bind-Value="@registerModel.PhoneNumber" />
+                </ChildContent>
+            </RadzenFormField>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" style="height:var(--rz-input-height);line-height:var(--rz-input-line-height);">
+                <RadzenCheckBox Name="IsActive" @bind-Value="@registerModel.IsActive" />
+                <RadzenLabel Text="IsActive" Component="IsActive" />
+            </RadzenStack>
+        </RadzenStack>
+        <RadzenStack style="margin-top:1rem;" Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Gap="0.5rem">
+            <RadzenButton ButtonStyle="ButtonStyle.Primary" ButtonType="ButtonType.Submit" Icon="save" Text="Save" Variant="Variant.Flat" />
+            <RadzenButton ButtonStyle="ButtonStyle.Light" Text="Cancel" Variant="Variant.Flat" Click="Cancel" />
+        </RadzenStack>
+    </RadzenTemplateForm>
+</RadzenColumn>
+
+@code {
+    private User registerModel = new();
+
+    private string GetAbsoluteUri(string uri)
+    {
+        if (!uri.StartsWith("/"))
+        {
+            return uri;
+        }
+
+        var baseUri = HttpClient.BaseAddress;
+
+        if (baseUri == null)
+        {
+            throw new Exception("Unable to determine base address");
+        }
+
+        Uri absolute = new(baseUri, uri);
+
+        return absolute.ToString();
+    }
+
+    private void Cancel()
+    {
+        DialogService.Close();
+    }
+
+    private async Task OnSubmit()
+    {
+        try
+        {
+            registerModel.LockoutEnabled = true;
+            registerModel.RoleNames = new List<string>();
+            registerModel.RoleNames.Add("admin");
+            registerModel.ExtraProperties = new Dictionary<string, object>();
+
+            await AppService.RegisterContactUserAsync(registerModel);
+
+            DialogService.Close();
+        }
+        catch (Exception ex)
+        {
+            NotificationMessage message = new()
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Add Failed",
+                    Detail = ex.Message,
+                    Duration = 4000,
+                };
+
+            NotificationService.Notify(message);
+        }
+    }
+}
